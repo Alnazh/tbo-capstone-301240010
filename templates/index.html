@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalcParser - Simulasi Tokenizer, Regex, PDA/CFG &amp; CNF</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="cp-navbar py-3">
+  <div class="container d-flex align-items-center justify-content-between">
+    <a href="#" class="cp-brand"><span class="dot"></span>CalcParser</a>
+    <div class="cp-tagline d-none d-md-block">tokenizer · regex · pda/cfg · chomsky normal form</div>
+  </div>
+</nav>
+
+<!-- hero: intro singkat + demo pipeline langsung -->
+<header class="hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <div class="hero-eyebrow">Teori Bahasa &amp; Otomata - Capstone Project</div>
+        <h1>Kalkulator aritmatika yang <span class="hl">memperlihatkan cara kerjanya sendiri.</span></h1>
+        <p class="lead">
+          CalcParser membedah satu masalah nyata, membaca dan menghitung ekspresi aritmatika,
+          menjadi empat tahapan teori bahasa formal: Tokenizer berbasis <em>Finite State Automata</em>,
+          <em>Regular Expression</em>, parser berbasis <em>Pushdown Automata &amp; Context-Free Grammar</em>,
+          dan transformasi ke <em>Chomsky Normal Form</em>.
+        </p>
+        <div class="mt-4">
+          <label class="cp-label">Coba jalankan pipeline lengkap</label>
+          <div class="d-flex gap-2 flex-wrap">
+            <input id="heroInput" class="cp-input hero-demo-input flex-grow-1" style="min-width:220px"
+                   value="12 + 3 * (4 - 1)" placeholder="tulis ekspresi, mis. 12 + 3 * (4 - 1)">
+            <button class="btn-cp" id="heroRunBtn">Jalankan ▸</button>
+          </div>
+          <div id="heroMessage" class="mt-2" style="font-family:var(--font-mono); font-size:.82rem; color:var(--text-secondary);"></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="blueprint-frame">
+          <span class="corner-bl"></span><span class="corner-br"></span>
+          <div class="cp-label mb-3">Alur Pipeline Compiler CalcParser</div>
+          <div class="d-flex align-items-stretch justify-content-between pipeline-schematic gap-1">
+            <div class="stage flex-fill" data-stage="input"><span class="stage-num">00</span>INPUT<br><span id="pl-input">-</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="stage flex-fill" data-stage="lexer"><span class="stage-num">01</span>TOKENIZER<br><span id="pl-lexer">FSA</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="stage flex-fill" data-stage="parser"><span class="stage-num">03</span>PARSER<br><span id="pl-parser">PDA</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="stage flex-fill" data-stage="result"><span class="stage-num">✓</span>HASIL<br><span id="pl-result">-</span></div>
+          </div>
+          <div id="heroTokenStream" class="token-stream mt-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container pb-5">
+
+  <!-- navigasi 4 modul utama -->
+  <div class="module-nav" id="moduleNav">
+    <div class="module-tab active" data-target="mod1"><span class="num">01</span>Finite State Automata</div>
+    <div class="module-tab" data-target="mod2"><span class="num">02</span>Regular Expression</div>
+    <div class="module-tab" data-target="mod3"><span class="num">03</span>Pushdown Automata &amp; CFG</div>
+    <div class="module-tab" data-target="mod4"><span class="num">04</span>Hierarki Chomsky &amp; CNF</div>
+  </div>
+
+  <!-- modul 1: tokenizer + simulator FSA -->
+  <section class="module-panel active" id="mod1">
+    <div class="subtab-nav">
+      <button class="subtab-btn active" data-sub="m1a">Tokenizer Kalkulator</button>
+      <button class="subtab-btn" data-sub="m1b">Simulator DFA / NFA Kustom</button>
+      <button class="subtab-btn" data-sub="m1c">Konversi NFA → DFA</button>
+      <button class="subtab-btn" data-sub="m1d">Moore &amp; Mealy Machine <span class="text-dim">(bonus)</span></button>
+    </div>
+
+    <!-- 1A. TOKENIZER -->
+    <div class="subtab-panel active" id="m1a">
+      <div class="cp-card">
+        <div class="cp-card-title">Tokenizer Ekspresi Aritmatika <span class="badge-soft">DFA - maximal munch</span></div>
+        <p class="text-secondary small mb-3">
+          Satu DFA tunggal membaca ekspresi karakter demi karakter. Setiap state akhir ditandai kategori
+          token (NUMBER, PLUS, MINUS, STAR, SLASH, LPAREN, RPAREN). Strategi <em>maximal munch</em> dipakai
+          persis seperti lexer pada compiler sungguhan: ambil kecocokan terpanjang sebelum berhenti.
+        </p>
+        <label class="cp-label">Ekspresi</label>
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <input id="tokInput" class="cp-input flex-grow-1" style="min-width:220px" value="12 + 3 * (4.5 - 1)">
+          <button class="btn-cp" id="tokRunBtn">Tokenisasi ▸</button>
+        </div>
+        <div id="tokError"></div>
+        <div id="tokResultWrap" style="display:none">
+          <div class="row g-4 mt-1">
+            <div class="col-lg-6">
+              <label class="cp-label">Diagram DFA Lexer</label>
+              <div class="hint-box">Lingkaran bergaris tebal berwarna kuning menandakan state akhir (token
+                terbentuk di situ). Jalankan tokenisasi dulu, lalu pakai tombol putar di bawah untuk melihat
+                state mana yang dilewati untuk tiap token, satu per satu.</div>
+              <div class="automaton-view" id="tokAutomatonView"></div>
+            </div>
+            <div class="col-lg-6">
+              <label class="cp-label">Token Hasil</label>
+              <div class="token-stream mb-3" id="tokStream"></div>
+              <label class="cp-label">Jejak Transisi per Token</label>
+              <div class="stepper-bar">
+                <button class="btn-icon" id="tokPrev">‹</button>
+                <button class="btn-icon" id="tokPlay">▶</button>
+                <button class="btn-icon" id="tokNext">›</button>
+                <span class="stepper-status" id="tokStepStatus">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1B. CUSTOM FSA -->
+    <div class="subtab-panel" id="m1b">
+      <div class="cp-card">
+        <div class="cp-card-title">Simulator DFA / NFA Kustom</div>
+        <p class="text-secondary small mb-2">Definisikan mesin dengan format teks, lalu uji sebuah string. Tipe mesin (DFA/NFA) terdeteksi otomatis.</p>
+        <div class="mb-2">
+          <span class="preset-chip" data-preset="fsa1">Preset: genap jumlah 1 (DFA)</span>
+          <span class="preset-chip" data-preset="fsa2">Preset: berakhiran "ab" (NFA)</span>
+          <span class="preset-chip" data-preset="fsa3">Preset: NFA pola bilangan (ε-transisi)</span>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <label class="cp-label">Definisi Mesin</label>
+            <textarea id="fsaDef" class="cp-textarea" style="min-height:190px"></textarea>
+          </div>
+          <div class="col-lg-5">
+            <label class="cp-label">String Input</label>
+            <input id="fsaInput" class="cp-input mb-3" value="1101">
+            <button class="btn-cp w-100" id="fsaRunBtn">Jalankan Simulasi ▸</button>
+            <div id="fsaError" class="mt-3"></div>
+            <div id="fsaBanner" class="mt-3"></div>
+          </div>
+        </div>
+        <div id="fsaResultWrap" style="display:none" class="mt-3">
+          <label class="cp-label">Diagram Mesin</label>
+          <div class="automaton-view mb-3" id="fsaAutomatonView"></div>
+          <div class="stepper-bar">
+            <button class="btn-icon" id="fsaPrev">‹</button>
+            <button class="btn-icon" id="fsaPlay">▶</button>
+            <button class="btn-icon" id="fsaNext">›</button>
+            <span class="stepper-status" id="fsaStepStatus">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1C. NFA -> DFA -->
+    <div class="subtab-panel" id="m1c">
+      <div class="cp-card">
+        <div class="cp-card-title">Konversi NFA → DFA <span class="badge-soft">Subset Construction</span></div>
+        <p class="text-secondary small mb-2">
+          Mengubah NFA (boleh memuat transisi-ε) menjadi DFA ekuivalen. Setiap state DFA merepresentasikan
+          himpunan bagian (subset) dari state-state NFA.
+        </p>
+        <div class="mb-2">
+          <span class="preset-chip" data-preset="nfa1">Preset: NFA mengandung "aa" atau "bb"</span>
+          <span class="preset-chip" data-preset="nfa2">Preset: NFA pola bilangan (ε-transisi)</span>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <label class="cp-label">Definisi NFA</label>
+            <textarea id="nfaDef" class="cp-textarea" style="min-height:170px"></textarea>
+          </div>
+          <div class="col-lg-5 d-flex flex-column">
+            <label class="cp-label">&nbsp;</label>
+            <button class="btn-cp" id="nfaRunBtn">Konversi ke DFA ▸</button>
+            <div id="nfaError" class="mt-3"></div>
+          </div>
+        </div>
+        <div id="nfaResultWrap" style="display:none" class="mt-3">
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <label class="cp-label">NFA Asal</label>
+              <div class="automaton-view" id="nfaOrigView"></div>
+            </div>
+            <div class="col-lg-6">
+              <label class="cp-label">DFA Hasil Konversi</label>
+              <div class="automaton-view" id="nfaDfaView"></div>
+            </div>
+          </div>
+          <label class="cp-label mt-3">Langkah Subset Construction</label>
+          <div class="hint-box">Tiap baris berarti: dari himpunan state DFA di kolom pertama, kalau baca simbol
+            di kolom kedua, gabungan tujuan semua state NFA di dalamnya menghasilkan himpunan baru di kolom
+            ketiga. Himpunan-himpunan inilah yang jadi state pada DFA hasil konversi.</div>
+          <div style="max-height:260px; overflow:auto;">
+            <table class="cp-table" id="nfaStepsTable"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1D. MOORE / MEALY -->
+    <div class="subtab-panel" id="m1d">
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">Moore Machine <span class="badge-soft">output per state</span></div>
+            <textarea id="moorDef" class="cp-textarea" style="min-height:160px"></textarea>
+            <label class="cp-label mt-2">String Input</label>
+            <input id="moorInput" class="cp-input mb-2" value="0110">
+            <button class="btn-cp" id="moorRunBtn">Simulasikan ▸</button>
+            <div id="moorError" class="mt-2"></div>
+            <div id="moorResult" class="mt-3"></div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">Mealy Machine <span class="badge-soft">output per transisi</span></div>
+            <textarea id="mealDef" class="cp-textarea" style="min-height:160px"></textarea>
+            <label class="cp-label mt-2">String Input</label>
+            <input id="mealInput" class="cp-input mb-2" value="0110">
+            <button class="btn-cp" id="mealRunBtn">Simulasikan ▸</button>
+            <div id="mealError" class="mt-2"></div>
+            <div id="mealResult" class="mt-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- modul 2: kompilasi & pengujian regex -->
+  <section class="module-panel" id="mod2">
+    <div class="cp-card">
+      <div class="cp-card-title">Kompilasi Regular Expression <span class="badge-soft">Thompson NFA → Subset Construction DFA</span></div>
+      <p class="text-secondary small mb-2">
+        Mendukung: literal, <code>|</code> (union), <code>*</code> <code>+</code> <code>?</code>, grup <code>()</code>,
+        character class <code>[a-z0-9]</code>, shorthand <code>\d</code> <code>\w</code> <code>\s</code>. Contoh pola
+        untuk token NUMBER pada tokenizer modul 1: <code>[0-9]+(\.[0-9]+)?</code>
+      </p>
+      <div class="mb-2">
+        <span class="preset-chip" data-preset="re1">[0-9]+(\.[0-9]+)?</span>
+        <span class="preset-chip" data-preset="re2">(a|b)*abb</span>
+        <span class="preset-chip" data-preset="re3">\d\d?:\d\d</span>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <input id="reInput" class="cp-input flex-grow-1" style="min-width:220px" value="[0-9]+(\.[0-9]+)?">
+        <button class="btn-cp" id="reCompileBtn">Compile ▸</button>
+      </div>
+      <div id="reError" class="mt-3"></div>
+    </div>
+
+    <div id="reResultWrap" style="display:none">
+      <div class="hint-box">NFA di kiri adalah hasil langsung dari Thompson Construction, satu simpul untuk
+        tiap operator dalam pola (makanya jumlah state-nya cenderung banyak dan transisi-nya banyak memakai
+        &epsilon;). DFA di kanan adalah bentuk yang sudah disederhanakan lewat subset construction, dipakai
+        untuk pengujian string di bagian bawah.</div>
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">NFA (Thompson Construction)</div>
+            <div class="automaton-view" id="reNfaView"></div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">DFA (Subset Construction)</div>
+            <div class="automaton-view" id="reDfaView"></div>
+          </div>
+        </div>
+      </div>
+      <div class="cp-card">
+        <div class="cp-card-title">Tata Bahasa Reguler Ekuivalen <span class="badge-soft">Linear Kanan</span></div>
+        <div class="grammar-block" id="reGrammarBlock"></div>
+      </div>
+      <div class="cp-card">
+        <div class="cp-card-title">Uji Pencocokan String</div>
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <input id="reTestInput" class="cp-input flex-grow-1" style="min-width:200px" value="12.5">
+          <button class="btn-cp" id="reTestBtn">Uji ▸</button>
+        </div>
+        <div id="reTestBanner"></div>
+        <div id="reTestStepWrap" style="display:none" class="mt-3">
+          <div class="automaton-view mb-3" id="reTestDfaView"></div>
+          <div class="stepper-bar">
+            <button class="btn-icon" id="rePrev">‹</button>
+            <button class="btn-icon" id="rePlay">▶</button>
+            <button class="btn-icon" id="reNext">›</button>
+            <span class="stepper-status" id="reStepStatus">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- modul 3: parser aritmatika + PDA generik -->
+  <section class="module-panel" id="mod3">
+    <div class="subtab-nav">
+      <button class="subtab-btn active" data-sub="m3a">Parser Ekspresi Aritmatika</button>
+      <button class="subtab-btn" data-sub="m3b">PDA Generik (CFG Bebas)</button>
+    </div>
+
+    <!-- 3A ARITHMETIC PARSER -->
+    <div class="subtab-panel active" id="m3a">
+      <div class="cp-card">
+        <div class="cp-card-title">Tata Bahasa Formal Ekspresi Aritmatika</div>
+        <div class="grammar-block">E → E + T | E - T | T
+T → T * F | T / F | F
+F → ( E ) | id</div>
+        <p class="text-secondary small mt-2 mb-0"><code>id</code> melambangkan token NUMBER dari hasil tokenizer Modul 1.</p>
+      </div>
+      <div class="cp-card">
+        <div class="cp-card-title">Parsing &amp; Simulasi PDA</div>
+        <div class="d-flex gap-2 flex-wrap">
+          <input id="arInput" class="cp-input flex-grow-1" style="min-width:220px" value="12 + 3 * (4 - 1)">
+          <button class="btn-cp" id="arRunBtn">Parsing ▸</button>
+        </div>
+        <div id="arError" class="mt-3"></div>
+      </div>
+
+      <div id="arResultWrap" style="display:none">
+        <div class="result-banner ok" id="arBanner">Diterima oleh grammar <span class="value" id="arValue"></span></div>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="cp-card h-100">
+              <div class="cp-card-title">Pohon Penurunan (Parse Tree)</div>
+              <div class="tree-view" id="arTreeView"></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="cp-card h-100">
+              <div class="cp-card-title">Derivasi <span class="badge-soft" id="arDerivToggleWrap">
+                  <button class="btn-cp-outline" id="arDerivToggle" style="padding:.15rem .5rem;font-size:.68rem;">tampilkan: kanan</button>
+                </span></div>
+              <div id="arDerivWrap" style="max-height:320px; overflow:auto;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="cp-card">
+          <div class="cp-card-title">Simulasi Pushdown Automaton (Shift-Reduce)</div>
+          <div class="hint-box"><b>SHIFT</b> berarti mendorong satu token dari sisa input ke atas stack.
+            <b>REDUCE</b> berarti beberapa simbol teratas stack cocok dengan ruas kanan sebuah produksi, lalu
+            diganti (di-"reduce") jadi ruas kirinya. Kalau proses berakhir dengan stack cuma berisi simbol awal
+            <code>E</code> dan input sudah habis, ekspresi tersebut valid menurut grammar.</div>
+          <div style="max-height:340px; overflow:auto;">
+            <table class="cp-table" id="arPdaTable">
+              <thead><tr><th style="width:10%">#</th><th style="width:35%">Stack</th><th style="width:35%">Sisa Input</th><th>Aksi</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3B GENERIC CFG -->
+    <div class="subtab-panel" id="m3b">
+      <div class="cp-card">
+        <div class="cp-card-title">PDA Generik via CYK <span class="badge-soft">berlaku untuk CFG sembarang</span></div>
+        <p class="text-secondary small mb-2">
+          Grammar apa pun otomatis dikonversi ke Chomsky Normal Form lalu diuji keanggotaannya dengan
+          algoritma CYK. Bila diterima, pohon penurunan dan jejak stack PDA direkonstruksi dari hasil CYK.
+        </p>
+        <div class="mb-2">
+          <span class="preset-chip" data-preset="cfgb1">aⁿbⁿ</span>
+          <span class="preset-chip" data-preset="cfgb2">Palindrom {a,b}</span>
+          <span class="preset-chip" data-preset="cfgb3">Kurung Seimbang</span>
+          <span class="preset-chip" data-preset="cfgb4">Grammar Aritmatika</span>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <label class="cp-label">Definisi Grammar (CFG)</label>
+            <textarea id="cfgbDef" class="cp-textarea" style="min-height:150px"></textarea>
+          </div>
+          <div class="col-lg-5">
+            <label class="cp-label">String Input <span class="text-dim">(pisahkan token dengan spasi)</span></label>
+            <input id="cfgbInput" class="cp-input mb-3" value="a a b b">
+            <button class="btn-cp w-100" id="cfgbRunBtn">Uji Keanggotaan ▸</button>
+            <div id="cfgbError" class="mt-3"></div>
+            <div id="cfgbBanner" class="mt-3"></div>
+          </div>
+        </div>
+      </div>
+      <div id="cfgbResultWrap" style="display:none">
+        <div class="cp-card">
+          <div class="cp-card-title">Grammar Setelah Konversi CNF</div>
+          <div class="grammar-block" id="cfgbCnfBlock"></div>
+        </div>
+        <div class="cp-card">
+          <div class="cp-card-title">Tabel CYK</div>
+          <div class="hint-box">Baris <b>l</b> = panjang potongan string yang sedang dicek, kolom <b>i</b> =
+            posisi awal potongan tersebut (dimulai dari 0). Sebuah sel berisi nonterminal yang bisa
+            menurunkan potongan string di posisi itu. String diterima kalau simbol awal grammar muncul di sel
+            paling atas (l = panjang penuh, i = 0), yang ditandai warna solid.</div>
+          <div style="overflow:auto;"><div id="cfgbCykTable"></div></div>
+        </div>
+        <div class="row g-4" id="cfgbTreeDerivWrap" style="display:none">
+          <div class="col-lg-6">
+            <div class="cp-card h-100">
+              <div class="cp-card-title">Pohon Penurunan (berbasis CNF)</div>
+              <div class="tree-view" id="cfgbTreeView"></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="cp-card h-100">
+              <div class="cp-card-title">Derivasi Kiri (Leftmost)</div>
+              <div id="cfgbDerivWrap" style="max-height:280px; overflow:auto;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="cp-card" id="cfgbPdaWrap" style="display:none">
+          <div class="cp-card-title">Jejak Stack PDA</div>
+          <div style="max-height:300px; overflow:auto;">
+            <table class="cp-table" id="cfgbPdaTable">
+              <thead><tr><th style="width:10%">#</th><th style="width:35%">Stack</th><th style="width:35%">Sisa Input</th><th>Aksi</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- modul 4: hierarki chomsky + konversi CNF/GNF -->
+  <section class="module-panel" id="mod4">
+    <div class="cp-card">
+      <div class="cp-card-title">Hierarki Chomsky</div>
+      <div class="table-responsive">
+        <table class="cp-table chomsky-table">
+          <thead><tr><th>Tipe</th><th>Nama</th><th>Mesin Pengenal</th><th>Contoh pada CalcParser</th></tr></thead>
+          <tbody>
+            <tr><td>Tipe 0</td><td>Unrestricted Grammar</td><td>Mesin Turing</td><td class="text-dim">tidak dipakai secara eksplisit</td></tr>
+            <tr><td>Tipe 1</td><td>Context-Sensitive Grammar</td><td>Linear Bounded Automaton</td><td class="text-dim">tidak dipakai secara eksplisit</td></tr>
+            <tr><td>Tipe 2</td><td>Context-Free Grammar</td><td>Pushdown Automaton</td><td>Grammar ekspresi aritmatika (Modul 3)</td></tr>
+            <tr><td>Tipe 3</td><td>Regular Grammar</td><td>Finite State Automaton</td><td>Tokenizer &amp; Regex (Modul 1 &amp; 2)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-secondary small mb-0">
+        Setiap tipe bahasa yang lebih tinggi mencakup seluruh bahasa di tipe bawahnya (Tipe 3 ⊂ Tipe 2 ⊂ Tipe 1 ⊂ Tipe 0).
+        CalcParser mendemonstrasikan hubungan Tipe 3 dan Tipe 2 secara langsung: token dari lexer (Tipe 3) menjadi
+        terminal bagi grammar ekspresi (Tipe 2).
+      </p>
+    </div>
+
+    <div class="cp-card">
+      <div class="cp-card-title">Konversi CFG Sembarang → Chomsky Normal Form</div>
+      <div class="mb-2">
+        <span class="preset-chip" data-preset="cnf1">Grammar Aritmatika</span>
+        <span class="preset-chip" data-preset="cnf2">aⁿbⁿ</span>
+        <span class="preset-chip" data-preset="cnf3">Grammar dengan produksi-ε</span>
+      </div>
+      <textarea id="cnfDef" class="cp-textarea" style="min-height:140px"></textarea>
+      <button class="btn-cp mt-2" id="cnfRunBtn">Konversi ke CNF ▸</button>
+      <div id="cnfError" class="mt-3"></div>
+    </div>
+
+    <div id="cnfResultWrap" style="display:none">
+      <div class="cp-card">
+        <div class="cp-card-title">Langkah Transformasi</div>
+        <div id="cnfStepsWrap"></div>
+      </div>
+      <div class="cp-card">
+        <div class="cp-card-title">Bentuk Normal Chomsky (Hasil Akhir)</div>
+        <div class="grammar-block" id="cnfFinalBlock"></div>
+      </div>
+      <div class="cp-card">
+        <div class="cp-card-title">Greibach Normal Form <span class="badge-soft">bonus</span></div>
+        <div id="gnfWrap"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="cp-footer">
+  <div class="container d-flex flex-wrap justify-content-between gap-2">
+    <span>CalcParser - Capstone Project Teori Bahasa dan Otomata</span>
+    <span>Dibangun dengan Flask · Vanilla JS · SVG</span>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
