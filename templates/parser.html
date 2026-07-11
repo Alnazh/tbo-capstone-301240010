@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}CalcParser - Parser & PDA{% endblock %}
+{% block content %}
+<main class="container py-5 page-content">
+
+  <div class="page-header">
+    <div class="hero-eyebrow">Modul 03</div>
+    <h2>Pushdown Automata &amp; Context-Free Grammar</h2>
+    <p class="text-secondary" style="max-width:70ch">
+      DFA/NFA di Modul 1 punya keterbatasan besar: mereka tidak bisa "menghitung" atau "mengingat" apa pun
+      selain sedang di state mana. Coba pikirkan ekspresi <code>((1 + 2) * 3)</code>, untuk tahu apakah
+      kurungnya seimbang, mesin harus mengingat berapa banyak kurung buka yang belum ditutup. Itu butuh
+      <b>ingatan</b>, dan FSA tidak punya itu. Pushdown Automata (PDA) menambahkan satu <b>stack</b> (tumpukan,
+      seperti tumpukan piring: yang terakhir masuk, keluar duluan) di atas FSA biasa, dan itu cukup untuk
+      mengenali bahasa yang jauh lebih rumit, termasuk ekspresi aritmatika bersarang. Aturan tata bahasanya
+      sendiri disebut <b>Context-Free Grammar (CFG)</b>.
+    </p>
+  </div>
+
+  <div class="subtab-nav">
+    <button class="subtab-btn active" data-sub="m3a">Parser Ekspresi Aritmatika</button>
+    <button class="subtab-btn" data-sub="m3b">PDA Generik (CFG Bebas)</button>
+  </div>
+
+  <!-- 3A ARITHMETIC PARSER -->
+  <div class="subtab-panel active" id="m3a">
+    <div class="cp-card">
+      <div class="cp-card-title">Tata Bahasa Formal Ekspresi Aritmatika</div>
+      <div class="grammar-block">E → E + T | E - T | T
+T → T * F | T / F | F
+F → ( E ) | id</div>
+      <p class="text-secondary small mt-2 mb-0">
+        <code>id</code> melambangkan token NUMBER dari hasil tokenizer Modul 1. Tiga nonterminal
+        (<code>E</code>, <code>T</code>, <code>F</code>) sengaja dipisah berjenjang supaya perkalian/pembagian
+        otomatis dihitung duluan daripada penjumlahan/pengurangan, tanpa perlu aturan prioritas operator
+        tambahan di luar grammar-nya sendiri.
+      </p>
+    </div>
+    <div class="cp-card">
+      <div class="cp-card-title">Parsing &amp; Simulasi PDA</div>
+      <div class="d-flex gap-2 flex-wrap">
+        <input id="arInput" class="cp-input flex-grow-1" style="min-width:220px" value="12 + 3 * (4 - 1)">
+        <button class="btn-cp" id="arRunBtn">Parsing ▸</button>
+      </div>
+      <div id="arError" class="mt-3"></div>
+    </div>
+
+    <div id="arResultWrap" style="display:none">
+      <div class="result-banner ok" id="arBanner">Diterima oleh grammar <span class="value" id="arValue"></span></div>
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">Pohon Penurunan (Parse Tree)</div>
+            <p class="text-secondary small mb-2">Struktur pohon ini menunjukkan bagaimana ekspresi dibangun
+              dari aturan grammar di atas, lapis demi lapis, sampai ke angka aslinya di daun paling bawah.</p>
+            <div class="tree-view" id="arTreeView"></div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">Derivasi <span class="badge-soft" id="arDerivToggleWrap">
+                <button class="btn-cp-outline" id="arDerivToggle" style="padding:.15rem .5rem;font-size:.68rem;">tampilkan: kanan</button>
+              </span></div>
+            <p class="text-secondary small mb-2">Derivasi adalah urutan langkah menurunkan simbol awal
+              <code>E</code> sampai jadi ekspresi aslinya, dengan mengganti satu nonterminal per langkah
+              memakai aturan grammar. "Kiri" berarti nonterminal paling kiri yang selalu diganti duluan,
+              "kanan" sebaliknya.</p>
+            <div id="arDerivWrap" style="max-height:320px; overflow:auto;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="cp-card">
+        <div class="cp-card-title">Simulasi Pushdown Automaton (Shift-Reduce)</div>
+        <div class="hint-box"><b>SHIFT</b> berarti mendorong satu token dari sisa input ke atas stack.
+          <b>REDUCE</b> berarti beberapa simbol teratas stack cocok dengan ruas kanan sebuah produksi, lalu
+          diganti (di-"reduce") jadi ruas kirinya. Kalau proses berakhir dengan stack cuma berisi simbol awal
+          <code>E</code> dan input sudah habis, ekspresi tersebut valid menurut grammar. Ini adalah cara kerja
+          PDA yang sesungguhnya: stack-nya persis kolom "Stack" di tabel bawah ini.</div>
+        <div style="max-height:340px; overflow:auto;">
+          <table class="cp-table" id="arPdaTable">
+            <thead><tr><th style="width:10%">#</th><th style="width:35%">Stack</th><th style="width:35%">Sisa Input</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3B GENERIC CFG -->
+  <div class="subtab-panel" id="m3b">
+    <div class="cp-card">
+      <div class="cp-card-title">PDA Generik via CYK <span class="badge-soft">berlaku untuk CFG sembarang</span></div>
+      <p class="text-secondary small mb-2">
+        Bagian di atas cuma berlaku untuk grammar ekspresi aritmatika yang sudah ditentukan. Di sini, kamu
+        bisa menulis CFG APAPUN dan mengujinya. Triknya: grammar yang kamu tulis otomatis dikonversi dulu ke
+        Chomsky Normal Form (lihat Modul 4), lalu diuji keanggotaannya dengan algoritma CYK. Bila diterima,
+        pohon penurunan dan jejak stack PDA direkonstruksi dari hasil CYK tersebut.
+      </p>
+      <div class="mb-2">
+        <span class="preset-chip" data-preset="cfgb1">aⁿbⁿ</span>
+        <span class="preset-chip" data-preset="cfgb2">Palindrom {a,b}</span>
+        <span class="preset-chip" data-preset="cfgb3">Kurung Seimbang</span>
+        <span class="preset-chip" data-preset="cfgb4">Grammar Aritmatika</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <label class="cp-label">Definisi Grammar (CFG)</label>
+          <textarea id="cfgbDef" class="cp-textarea" style="min-height:150px"></textarea>
+        </div>
+        <div class="col-lg-5">
+          <label class="cp-label">String Input <span class="text-dim">(pisahkan token dengan spasi)</span></label>
+          <input id="cfgbInput" class="cp-input mb-3" value="a a b b">
+          <button class="btn-cp w-100" id="cfgbRunBtn">Uji Keanggotaan ▸</button>
+          <div id="cfgbError" class="mt-3"></div>
+          <div id="cfgbBanner" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+    <div id="cfgbResultWrap" style="display:none">
+      <div class="cp-card">
+        <div class="cp-card-title">Grammar Setelah Konversi CNF</div>
+        <div class="grammar-block" id="cfgbCnfBlock"></div>
+      </div>
+      <div class="cp-card">
+        <div class="cp-card-title">Tabel CYK</div>
+        <div class="hint-box">Baris <b>l</b> = panjang potongan string yang sedang dicek, kolom <b>i</b> =
+          posisi awal potongan tersebut (dimulai dari 0). Sebuah sel berisi nonterminal yang bisa
+          menurunkan potongan string di posisi itu. String diterima kalau simbol awal grammar muncul di sel
+          paling atas (l = panjang penuh, i = 0), yang ditandai warna solid.</div>
+        <div style="overflow:auto;"><div id="cfgbCykTable"></div></div>
+      </div>
+      <div class="row g-4" id="cfgbTreeDerivWrap" style="display:none">
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">Pohon Penurunan (berbasis CNF)</div>
+            <p class="text-secondary small mb-2">Label pada pohon ini memakai nama nonterminal hasil
+              transformasi CNF (contoh <code>T_a</code> untuk terminal <code>a</code> yang "dibungkus" jadi
+              nonterminal), bukan grammar aslinya. Itu wajar, karena pohon ini dibangun dari grammar CNF-nya.</p>
+            <div class="tree-view" id="cfgbTreeView"></div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="cp-card h-100">
+            <div class="cp-card-title">Derivasi Kiri (Leftmost)</div>
+            <div id="cfgbDerivWrap" style="max-height:280px; overflow:auto;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="cp-card" id="cfgbPdaWrap" style="display:none">
+        <div class="cp-card-title">Jejak Stack PDA</div>
+        <div style="max-height:300px; overflow:auto;">
+          <table class="cp-table" id="cfgbPdaTable">
+            <thead><tr><th style="width:10%">#</th><th style="width:35%">Stack</th><th style="width:35%">Sisa Input</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+{% endblock %}
