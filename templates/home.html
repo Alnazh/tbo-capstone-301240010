@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}CalcParser - Beranda{% endblock %}
+{% block content %}
+
+<header class="hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <div class="hero-eyebrow">Teori Bahasa &amp; Otomata - Capstone Project</div>
+        <h1>Kalkulator aritmatika yang <span class="hl">memperlihatkan cara kerjanya sendiri.</span></h1>
+        <p class="lead">
+          Coba pikirkan bagaimana kalkulator membaca tulisan <code>12 + 3 * (4 - 1)</code> dan tahu harus
+          menghitungnya dalam urutan yang benar. Di balik layar, ada empat tahap yang semuanya adalah konsep
+          Teori Bahasa dan Otomata. CalcParser membongkar keempat tahap itu satu per satu supaya kelihatan,
+          bukan cuma dijelaskan di atas kertas.
+        </p>
+        <div class="mt-4">
+          <label class="cp-label">Coba jalankan pipeline lengkap</label>
+          <div class="d-flex gap-2 flex-wrap">
+            <input id="heroInput" class="cp-input hero-demo-input flex-grow-1" style="min-width:220px"
+                   value="12 + 3 * (4 - 1)" placeholder="tulis ekspresi, mis. 12 + 3 * (4 - 1)">
+            <button class="btn-cp" id="heroRunBtn">Jalankan ▸</button>
+          </div>
+          <div id="heroMessage" class="mt-2" style="font-family:var(--font-mono); font-size:.82rem; color:var(--text-secondary);"></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="blueprint-frame">
+          <span class="corner-bl"></span><span class="corner-br"></span>
+          <div class="cp-label mb-3">Alur Pipeline Compiler CalcParser</div>
+          <div class="d-flex align-items-stretch justify-content-between pipeline-schematic gap-1">
+            <div class="stage flex-fill" data-stage="input"><span class="stage-num">00</span>INPUT<br><span id="pl-input">-</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="stage flex-fill" data-stage="lexer"><span class="stage-num">01</span>TOKENIZER<br><span id="pl-lexer">FSA</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="stage flex-fill" data-stage="parser"><span class="stage-num">03</span>PARSER<br><span id="pl-parser">PDA</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="stage flex-fill" data-stage="result"><span class="stage-num">✓</span>HASIL<br><span id="pl-result">-</span></div>
+          </div>
+          <div id="heroTokenStream" class="token-stream mt-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container pb-5 page-content">
+
+  <div class="cp-card mb-4">
+    <div class="cp-card-title">Kenapa harus ekspresi aritmatika?</div>
+    <p class="text-secondary small mb-0">
+      Ketimbang empat modul yang berdiri sendiri-sendiri dan tidak nyambung satu sama lain, CalcParser memakai
+      satu masalah nyata (menghitung ekspresi matematika) sebagai benang merah. Token dari Modul 1 dipakai
+      sebagai simbol terminal di Modul 3. Pola regex di Modul 2 adalah cara ringkas menulis aturan yang dipakai
+      Modul 1. Grammar di Modul 3 adalah bahan mentah buat konversi di Modul 4. Semuanya saling berkaitan,
+      persis seperti compiler sungguhan.
+    </p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-6">
+      <a href="{{ url_for('tokenizer_page') }}" class="module-card-link">
+        <div class="cp-card h-100 module-card mod1">
+          <div class="cp-card-title"><span class="num">01</span>Finite State Automata</div>
+          <p class="text-secondary small mb-2">
+            <b>Analogi sederhana:</b> bayangkan mesin dengan beberapa "ruangan" (state). Mesin cuma bisa
+            ingat sedang di ruangan mana, tidak bisa ingat apa-apa lagi. Tiap baca satu karakter, ia pindah
+            ruangan sesuai aturan. Itulah DFA/NFA, dan itu juga cara tokenizer CalcParser membaca ekspresi
+            karakter demi karakter.
+          </p>
+          <span class="module-card-cta">Buka Tokenizer &amp; simulator FSA →</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="{{ url_for('regex_page') }}" class="module-card-link">
+        <div class="cp-card h-100 module-card mod2">
+          <div class="cp-card-title"><span class="num">02</span>Regular Expression</div>
+          <p class="text-secondary small mb-2">
+            <b>Analogi sederhana:</b> regex adalah cara singkat menuliskan pola, seperti resep. Tapi
+            komputer tidak bisa langsung "menjalankan" resep, jadi resep itu diterjemahkan dulu jadi mesin
+            state (NFA), baru disederhanakan jadi DFA yang benar-benar dieksekusi.
+          </p>
+          <span class="module-card-cta">Buka Kompilasi &amp; Uji Regex →</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="{{ url_for('parser_page') }}" class="module-card-link">
+        <div class="cp-card h-100 module-card mod3">
+          <div class="cp-card-title"><span class="num">03</span>Pushdown Automata &amp; CFG</div>
+          <p class="text-secondary small mb-2">
+            <b>Analogi sederhana:</b> DFA tidak sanggup menghitung kurung yang berpasangan, karena ia tidak
+            punya "ingatan". PDA punya tambahan stack (tumpukan), seperti tumpukan piring, buat mengingat
+            berapa kurung yang masih terbuka. Itulah kenapa ekspresi bersarang butuh PDA, bukan cuma DFA.
+          </p>
+          <span class="module-card-cta">Buka Parser Ekspresi &amp; PDA →</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="{{ url_for('cnf_page') }}" class="module-card-link">
+        <div class="cp-card h-100 module-card mod4">
+          <div class="cp-card-title"><span class="num">04</span>Hierarki Chomsky &amp; CNF</div>
+          <p class="text-secondary small mb-2">
+            <b>Analogi sederhana:</b> grammar bebas boleh ditulis dengan berbagai gaya, tapi komputer lebih
+            suka format yang seragam. CNF adalah "format baku" itu, setiap aturan cuma boleh berbentuk dua
+            bentuk tertentu saja, supaya algoritma seperti CYK bisa jalan dengan pasti.
+          </p>
+          <span class="module-card-cta">Buka Konversi CNF/GNF →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+</main>
+{% endblock %}
