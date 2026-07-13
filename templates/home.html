@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CalcParser - Beranda{% endblock %}
+{% block title %}Otomatika - Beranda{% endblock %}
 {% block content %}
 
 <header class="hero">
@@ -11,7 +11,7 @@
         <p class="lead">
           Coba pikirkan bagaimana kalkulator membaca tulisan <code>12 + 3 * (4 - 1)</code> dan tahu harus
           menghitungnya dalam urutan yang benar. Di balik layar, ada empat tahap yang semuanya adalah konsep
-          Teori Bahasa dan Otomata. CalcParser membongkar keempat tahap itu satu per satu supaya kelihatan,
+          Teori Bahasa dan Otomata. Otomatika membongkar keempat tahap itu satu per satu supaya kelihatan,
           bukan cuma dijelaskan di atas kertas.
         </p>
         <div class="mt-4">
@@ -27,7 +27,7 @@
       <div class="col-lg-6">
         <div class="blueprint-frame">
           <span class="corner-bl"></span><span class="corner-br"></span>
-          <div class="cp-label mb-3">Alur Pipeline Compiler CalcParser</div>
+          <div class="cp-label mb-3">Alur Pipeline Compiler Otomatika</div>
           <div class="d-flex align-items-stretch justify-content-between pipeline-schematic gap-1">
             <div class="stage flex-fill" data-stage="input"><span class="stage-num">00</span>INPUT<br><span id="pl-input">-</span></div>
             <div class="pipeline-arrow">→</div>
@@ -46,10 +46,16 @@
 
 <main class="container pb-5 page-content">
 
+  <div id="heroDetail" class="cp-card mb-4" style="display:none">
+    <div class="cp-card-title">Rincian Proses</div>
+    <div id="heroLog" class="hero-log mb-3"></div>
+    <div id="heroTreeView" class="automaton-view tree-center" style="display:none"></div>
+  </div>
+
   <div class="cp-card mb-4">
     <div class="cp-card-title">Kenapa harus ekspresi aritmatika?</div>
     <p class="text-secondary small mb-0">
-      Ketimbang empat modul yang berdiri sendiri-sendiri dan tidak nyambung satu sama lain, CalcParser memakai
+      Ketimbang empat modul yang berdiri sendiri-sendiri dan tidak nyambung satu sama lain, Otomatika memakai
       satu masalah nyata (menghitung ekspresi matematika) sebagai benang merah. Token dari Modul 1 dipakai
       sebagai simbol terminal di Modul 3. Pola regex di Modul 2 adalah cara ringkas menulis aturan yang dipakai
       Modul 1. Grammar di Modul 3 adalah bahan mentah buat konversi di Modul 4. Semuanya saling berkaitan,
@@ -65,7 +71,7 @@
           <p class="text-secondary small mb-2">
             <b>Analogi sederhana:</b> bayangkan mesin dengan beberapa "ruangan" (state). Mesin cuma bisa
             ingat sedang di ruangan mana, tidak bisa ingat apa-apa lagi. Tiap baca satu karakter, ia pindah
-            ruangan sesuai aturan. Itulah DFA/NFA, dan itu juga cara tokenizer CalcParser membaca ekspresi
+            ruangan sesuai aturan. Itulah DFA/NFA, dan itu juga cara tokenizer Otomatika membaca ekspresi
             karakter demi karakter.
           </p>
           <span class="module-card-cta">Buka Tokenizer &amp; simulator FSA →</span>
