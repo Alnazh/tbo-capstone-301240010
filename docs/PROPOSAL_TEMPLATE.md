@@ -1,4 +1,4 @@
-# Proposal Mini - CalcParser
+# Proposal Mini - Otomatika
 *(Template. Lengkapi dan sesuaikan sebelum dikumpulkan - maksimal 5 halaman ketika dijadikan PDF.)*
 
 **Nama :** _____________________
@@ -19,7 +19,7 @@ empat topik Teori Bahasa dan Otomata (FSA, Regular Expression, PDA/CFG, dan CNF)
   ulang sebagai simulasi PDA (shift-reduce) beserta derivasi kiri/kanan.
 - **Modul 4 - Hierarki Chomsky & CNF:** konversi CFG sembarang ke Chomsky Normal Form
   (langkah START, DEL, UNIT, useless-symbol removal, TERM+BIN), dengan CYK sebagai
-  pengenal keanggotaan bahasa, serta konversi Greibach Normal Form sebagai bonus.
+  pengenal keanggotaan bahasa, serta konversi Greibach Normal Form.
 
 *(Sisipkan diagram state / pohon derivasi / diagram arsitektur di sini.)*
 
