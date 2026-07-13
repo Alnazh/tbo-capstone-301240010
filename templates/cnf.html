@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CalcParser - Hierarki Chomsky & CNF{% endblock %}
+{% block title %}Otomatika - Hierarki Chomsky & CNF{% endblock %}
 {% block content %}
 <main class="container py-5 page-content">
 
@@ -21,7 +21,7 @@
     <div class="cp-card-title">Hierarki Chomsky</div>
     <div class="table-responsive">
       <table class="cp-table chomsky-table">
-        <thead><tr><th>Tipe</th><th>Nama</th><th>Mesin Pengenal</th><th>Contoh pada CalcParser</th></tr></thead>
+        <thead><tr><th>Tipe</th><th>Nama</th><th>Mesin Pengenal</th><th>Contoh pada Otomatika</th></tr></thead>
         <tbody>
           <tr><td>Tipe 0</td><td>Unrestricted Grammar</td><td>Mesin Turing</td><td class="text-dim">tidak dipakai secara eksplisit</td></tr>
           <tr><td>Tipe 1</td><td>Context-Sensitive Grammar</td><td>Linear Bounded Automaton</td><td class="text-dim">tidak dipakai secara eksplisit</td></tr>
@@ -33,7 +33,7 @@
     <p class="text-secondary small mb-0">
       Setiap tipe bahasa yang lebih tinggi (angka lebih kecil) mencakup seluruh bahasa di tipe bawahnya
       (Tipe 3 ⊂ Tipe 2 ⊂ Tipe 1 ⊂ Tipe 0), artinya semua yang bisa dikenali FSA pasti juga bisa dikenali PDA,
-      tapi tidak sebaliknya. CalcParser mendemonstrasikan hubungan Tipe 3 dan Tipe 2 secara langsung: token
+      tapi tidak sebaliknya. Otomatika mendemonstrasikan hubungan Tipe 3 dan Tipe 2 secara langsung: token
       dari lexer (Tipe 3) menjadi terminal bagi grammar ekspresi (Tipe 2).
     </p>
   </div>
@@ -70,11 +70,12 @@
       <div class="grammar-block" id="cnfFinalBlock"></div>
     </div>
     <div class="cp-card">
-      <div class="cp-card-title">Greibach Normal Form <span class="badge-soft">bonus</span></div>
+      <div class="cp-card-title">Greibach Normal Form</div>
       <p class="text-secondary small mb-2">GNF mewajibkan setiap aturan produksi diawali tepat satu terminal,
-        diikuti nol atau lebih nonterminal. Konversi ini jauh lebih rumit daripada CNF (grammar bisa
-        "meledak" jadi banyak aturan baru), jadi fitur ini bersifat eksperimental: kalau gagal, akan
-        ditampilkan pesan yang jujur, bukan hasil yang salah.</p>
+        diikuti nol atau lebih nonterminal. Konversi ini jauh lebih rumit daripada CNF: grammar bisa
+        "meledak" jadi banyak aturan baru lewat substitusi berantai. Hasilnya tetap ditampilkan apa
+        adanya (bisa digulir kalau panjang), dan kalau benar-benar gagal, akan ditampilkan pesan yang
+        jujur, bukan hasil yang salah.</p>
       <div id="gnfWrap"></div>
     </div>
   </div>

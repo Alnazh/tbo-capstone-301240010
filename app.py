@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
-"""CalcParser: simulasi Tokenizer/FSA, Regex, Parser CFG/PDA, dan konversi CNF.
-Seluruh logika otomata ditulis manual (tanpa modul `re`) untuk demo konsep kuliah."""
-
+"""
+Otomatika - simulator Tokenizer/FSA, Regex, Parser/PDA, dan CNF.
+Satu bahasa per file: app.py (Python), script.js (JS), style.css (CSS).
+"""
 import itertools
 import os
 from collections import OrderedDict, defaultdict
 
 from flask import Flask, jsonify, render_template, request
 
-app = Flask(__name__)
-
 EPSILON = "ε"
 EPSILON_ALIASES = {"", "eps", "epsilon", "ε", "e"}
 
 
-# BAGIAN 1: MESIN FSA (DFA/NFA/Moore/Mealy).
-# Representasi seragam: dict {states, alphabet, start, finals, transitions}.
+# BAGIAN 1: FSA (DFA/NFA/Moore/Mealy)
+# Otomata disimpan sebagai dict: states, alphabet, start, finals, transitions.
 
 class AutomataError(Exception):
     """Dilempar ketika definisi mesin otomata tidak valid."""
@@ -26,7 +25,24 @@ def _split_list(value):
 
 
 def parse_fsa_definition(text):
-    """Parsing definisi DFA/NFA: 'states:/alphabet:/start:/final:' lalu baris 'asal simbol tujuan'."""
+    """
+    Mem-parsing definisi DFA/NFA dari format teks sederhana, contoh:
+
+        states: q0, q1, q2
+        alphabet: 0, 1
+        start: q0
+        final: q2
+        q0 0 q0
+        q0 1 q1
+        q1 0 q1
+        q1 1 q2
+        q2 0 q2
+        q2 1 q2
+
+    Baris transisi epsilon dapat ditulis dengan simbol 'eps' atau 'ε'.
+    Mengembalikan dict otomata generik yang dipakai oleh seluruh mesin
+    simulasi pada aplikasi ini.
+    """
     states, alphabet, start, finals = [], [], None, []
     transitions = defaultdict(set)
     raw_transitions = []
@@ -309,11 +325,17 @@ def output_machine_to_json(machine):
     }
 
 
-# BAGIAN 2: TOKENIZER KALKULATOR.
-# Lexer DFA manual dengan strategi maximal munch (bukan split() biasa).
+# BAGIAN 2: TOKENIZER KALKULATOR
+# Lexer DFA manual, strategi maximal munch (ambil kecocokan terpanjang).
 
 def build_tokenizer_automaton():
-    """DFA lexer CalcParser; state akhir dipetakan ke kategori token via TOKEN_TAGS."""
+    """
+    Satu DFA buat lexer Otomatika. Tiap state akhir dipetakan ke kategori
+    token lewat TOKEN_TAGS. Kalau dari suatu state tidak ada transisi yang
+    cocok dengan karakter berikutnya, itu berarti "state mati" secara
+    implisit - tidak perlu digambar sebagai state terpisah karena cuma
+    bikin diagram penuh sesak tanpa nambah informasi apa pun.
+    """
     states = ["S", "NUM", "NUMDOT", "NUMFRAC", "PLUS", "MINUS", "STAR",
               "SLASH", "LPAREN", "RPAREN", "WS"]
     transitions = defaultdict(set)
@@ -397,8 +419,8 @@ def tokenize_expression(expr, keep_whitespace_trace=True):
     return tokens, traces
 
 
-# BAGIAN 3: MESIN REGULAR EXPRESSION (bukan wrapper modul `re`).
-# Alur: parser AST -> Thompson Construction (NFA) -> nfa_to_dfa (Bagian 1).
+# BAGIAN 3: REGEX ENGINE
+# Pola -> AST (recursive descent) -> NFA (Thompson) -> DFA (subset construction).
 
 class RegexError(Exception):
     pass
@@ -652,8 +674,8 @@ def regex_to_right_linear_grammar(dfa_json):
     return [start_line] + lines
 
 
-# BAGIAN 4: GRAMMAR BEBAS KONTEKS (CFG).
-# Grammar = dict {start, nonterminals, terminals, productions}; diparsing di parse_cfg.
+# BAGIAN 4: CFG
+# Grammar: dict start/nonterminals/terminals/productions, format "S -> a S b | a b".
 
 class GrammarError(Exception):
     pass
@@ -720,8 +742,7 @@ def clone_grammar(grammar):
     }
 
 
-# Tiap langkah CNF jadi fungsi terpisah agar mudah dites satu-satu.
-# Urutan sesuai textbook: START -> DEL (nullable) -> UNIT -> TERM+BIN.
+# Konversi CNF dipecah per langkah: START, DEL, UNIT, lalu TERM+BIN.
 
 def cnf_step_start(grammar):
     g = clone_grammar(grammar)
@@ -940,11 +961,13 @@ def convert_to_cnf(grammar_text):
     return original, g5, steps
 
 
-# GNF (bonus): produksi bisa meledak untuk grammar besar (saling substitusi).
-# convert_to_gnf dibungkus try/except - gagal berarti pesan jujur, bukan hasil salah.
+# GNF: produksi bisa meledak untuk grammar besar, jadi dibungkus try/except.
 
 def convert_to_gnf(cnf_grammar):
-    """Best-effort GNF dari grammar CNF; return (berhasil, grammar_or_none, pesan)."""
+    """
+    Best-effort GNF converter dari grammar berbentuk CNF.
+    Mengembalikan (berhasil: bool, grammar_or_none, pesan).
+    """
     try:
         g = clone_grammar(cnf_grammar)
         order = [nt for nt in g["order"] if any(g["productions"].get(nt))]
@@ -1037,15 +1060,28 @@ def convert_to_gnf(cnf_grammar):
         for nt, alts in prods.items():
             for alt in alts:
                 if alt and alt[0] in all_nts:
-                    return False, None, ("GNF tidak dapat diselesaikan secara utuh untuk grammar ini "
-                                          "karena terdapat rekursi tak langsung yang kompleks. "
-                                          "Fitur GNF bersifat eksperimental (bonus).")
+                    return False, None, (
+                        "GNF tidak dapat diselesaikan secara utuh untuk grammar ini karena "
+                        "terdapat rekursi tak langsung yang kompleks."
+                    )
 
         result = {
             "start": g["start"], "nonterminals": set(prods.keys()),
             "terminals": g["terminals"], "productions": prods, "order": list(prods.keys()),
         }
-        return True, result, "Konversi GNF berhasil."
+        total_alts = sum(len(alts) for alts in prods.values())
+        if total_alts > 3000:
+            return False, None, (
+                f"GNF meledak jadi {total_alts} produksi, jauh melebihi batas aman untuk dihitung "
+                "dan ditampilkan (efek substitusi berantai khas algoritma GNF). Coba grammar yang "
+                "lebih kecil."
+            )
+        note = (
+            f"Konversi GNF berhasil ({total_alts} produksi). Grammar di bawah bisa terlihat panjang "
+            "karena efek substitusi berantai khas GNF, bukan kesalahan - tetap setara dengan grammar "
+            "aslinya, cuma kurang ringkas dibaca manusia."
+        ) if total_alts > 30 else "Konversi GNF berhasil."
+        return True, result, note
     except Exception as exc:  # pragma: no cover - safety net utk grammar tak lazim
         return False, None, f"GNF tidak tersedia untuk grammar ini ({exc})."
 
@@ -1057,8 +1093,7 @@ def _starts_with_terminal_or_self(sym, prods, nts):
     return False
 
 
-# CYK butuh grammar CNF (PDA generik selalu panggil convert_to_cnf dulu).
-# table[(i, l)] = himpunan nonterminal yang bisa menurunkan substring sepanjang l dari indeks i.
+# CYK butuh grammar CNF. table[(i, l)] = nonterminal yang menurunkan substring panjang l dari indeks i.
 
 def cyk_parse(cnf_grammar, terminal_seq):
     prods = cnf_grammar["productions"]
@@ -1120,8 +1155,7 @@ def cyk_table_to_json(table, n):
     return rows
 
 
-# Fungsi generik untuk pohon berbentuk {symbol, children}.
-# Dipakai ulang oleh parser aritmatika (Bagian 5) dan hasil CYK (Bagian 4).
+# Helper generik untuk pohon {symbol, children}, dipakai parser dan CYK.
 
 def tree_symbols(nodes):
     return [nd["symbol"] for nd in nodes]
@@ -1195,8 +1229,8 @@ def tree_to_pda_trace(root):
     return steps
 
 
-# BAGIAN 5: PARSER EKSPRESI ARITMATIKA.
-# Grammar E/T/F left-recursive -> dipakai teknik precedence climbing, pohon hasilnya tetap sama.
+# BAGIAN 5: PARSER EKSPRESI ARITMATIKA
+# Precedence climbing, hasil pohonnya setara grammar E/T/F di atas.
 
 class ParseError(Exception):
     pass
@@ -1302,8 +1336,19 @@ def evaluate_tree(node):
     return None
 
 
-# ROUTES FLASK: terima JSON, panggil fungsi di atas, balas JSON.
-# Error input pengguna ditangkap dan dibalas sebagai pesan jelas, bukan 500.
+# ROUTES FLASK
+# Endpoint JSON: panggil fungsi di atas, error input dibalikin sebagai pesan jelas.
+
+app = Flask(__name__)
+
+
+def _asset_version():
+    files = [os.path.join(app.static_folder, f) for f in ("script.js", "style.css", "grid.css")]
+    return str(int(max(os.path.getmtime(f) for f in files if os.path.exists(f))))
+
+
+app.jinja_env.globals["asset_version"] = _asset_version()
+
 
 @app.route("/")
 def home():
@@ -1328,6 +1373,11 @@ def parser_page():
 @app.route("/cnf")
 def cnf_page():
     return render_template("cnf.html", active="cnf")
+
+
+@app.route("/panduan")
+def panduan_page():
+    return render_template("panduan.html", active="panduan")
 
 
 def _err(msg, code=400):
@@ -1523,9 +1573,9 @@ def api_pipeline_run():
         "parser_ok": stage_parser_ok,
         "message": parse_message,
         "value": value,
+        "tree": tree,
         "token_count": len(tokens),
     })
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
