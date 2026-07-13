@@ -1,4 +1,4 @@
-# CalcParser
+# Otomatika
 
 Aplikasi web yang membedah satu masalah nyata (menghitung ekspresi aritmatika) menjadi
 empat tahapan Teori Bahasa dan Otomata: **Tokenizer (Finite State Automata)**,
@@ -55,9 +55,9 @@ Tahun Akademik 2025/2026 Genap.
 | Bagian | Teknologi |
 |---|---|
 | Backend | Python 3, Flask |
-| Frontend | HTML5, CSS3 (custom), JavaScript (vanilla - tanpa framework), Bootstrap 5 (grid & utilitas) |
+| Frontend | HTML5, CSS3 (custom), JavaScript (vanilla - tanpa framework), grid/utilitas CSS sendiri (tanpa CDN eksternal) |
 | Visualisasi | SVG digambar dinamis di sisi klien (diagram automata, pohon penurunan, tabel CYK) - tanpa library diagram eksternal |
-| Pengujian | `unittest` (Python standard library), 40 test case di `tests/test_app.py` |
+| Pengujian | `unittest` (41 test backend, `tests/test_app.py`) + regresi logika frontend murni via Node `vm` (`tests_js/run.js`) |
 
 Seluruh algoritma inti (automata, regex engine, CYK, konversi CNF/GNF) ditulis manual
 tanpa memakai modul `re` bawaan Python, untuk benar-benar mendemonstrasikan konsep
@@ -66,7 +66,7 @@ otomata dari mata kuliah, bukan menyerahkannya ke library pihak ketiga.
 ## Struktur Folder
 
 ```
-calcparser/
+otomatika/
 ├── app.py                 # seluruh logika Python & routing Flask
 ├── templates/
 │   ├── base.html          # layout bersama (navbar, footer) dipakai semua halaman
@@ -76,10 +76,13 @@ calcparser/
 │   ├── parser.html        # halaman Modul 3: parser aritmatika & PDA generik
 │   └── cnf.html           # halaman Modul 4: hierarki Chomsky & konversi CNF/GNF
 ├── static/
+│   ├── grid.css            # grid & utilitas layout sendiri (tanpa CDN Bootstrap)
 │   ├── style.css          # seluruh gaya CSS
 │   └── script.js          # seluruh logika JavaScript sisi klien
 ├── tests/
-│   └── test_app.py        # 40 test case (10 per modul)
+│   └── test_app.py        # 41 test case backend
+├── tests_js/
+│   └── run.js              # test regresi logika frontend murni (Node vm)
 ├── docs/
 │   ├── PROPOSAL_TEMPLATE.md
 │   └── AI_USAGE_DISCLOSURE_TEMPLATE.md
@@ -87,6 +90,10 @@ calcparser/
 ├── Procfile                # untuk deploy ke Railway/Render/Heroku-like platform
 └── README.md
 ```
+
+`app.py` dibagi jadi 5 bagian bertanda komentar (`# BAGIAN 1` s/d `# BAGIAN 5`) mengikuti
+urutan modul, ditutup bagian `# ROUTES FLASK` untuk endpoint. Semua dalam satu file supaya
+gampang diserahkan sebagai satu kesatuan, tapi tetap tersusun rapi per bagian.
 
 ## Cara Instalasi Lokal
 
@@ -106,7 +113,8 @@ Aplikasi berjalan di `http://127.0.0.1:5000`.
 Menjalankan seluruh test:
 
 ```bash
-python -m unittest tests.test_app -v
+python -m unittest tests.test_app -v   # 41 test backend (Python)
+node tests_js/run.js                   # test regresi logika frontend (JS)
 ```
 
 ## Deployment ke Domain `.my.id`
